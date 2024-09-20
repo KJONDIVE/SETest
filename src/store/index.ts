@@ -1,6 +1,6 @@
 import { makeAutoObservable, action, runInAction } from 'mobx';
 import { fetchPhotos } from '../api/api';
-import NetInfo from "@react-native-community/netinfo"
+import NetInfo, { NetInfoState, NetInfoSubscription } from "@react-native-community/netinfo";
 
 class PhotoStore {
   photos: any[] = [];
@@ -8,43 +8,54 @@ class PhotoStore {
   loading: boolean = false;
   error: string | null = null;
   hasMore: boolean = true;
-  retrying: boolean = false; 
+  retrying: boolean = false;
+  isConnected: boolean | null = true;
+  netInfoSubscription: NetInfoSubscription | null = null;
 
   constructor() {
     makeAutoObservable(this, {
       loadPhotos: action,
       refreshPhotos: action,
       retryLoadPhotos: action,
+      setConnectionStatus: action,
+      unsubscribeNetInfo: action,
     });
+    this.netInfoSubscription = NetInfo.addEventListener(this.handleConnectivityChange);
   }
 
+
+  setConnectionStatus = (isConnected: boolean | null) => {
+    this.isConnected = isConnected;
+    if (isConnected === false) {
+      runInAction(() => {
+        this.error = 'Ошибка: соединение с интернетом потеряно.';
+      });
+    } else if (isConnected) {
+      runInAction(() => {
+        this.error = null;
+      });
+    }
+  };
+
+
+  handleConnectivityChange = (state: NetInfoState) => {
+    this.setConnectionStatus(state.isConnected);
+  };
+
   loadPhotos = async () => {
-    if (this.loading || !this.hasMore || this.retrying) return;
+    if (this.loading || !this.hasMore || this.retrying || this.isConnected === false) return;
 
     this.loading = true;
     this.error = null;
 
-    const state = await NetInfo.fetch();
-    console.log(state)
-    if (!state.isConnected) {
-      runInAction(() => {
-        this.error = 'Нет подключения к интернету.';
-        this.loading = false;
-      });
-      return;
-    }
-
     try {
       const response = await fetchPhotos(this.page);
-      console.log('API response:', response);  // Проверка структуры ответа
+      console.log('API response:', response);
 
       runInAction(() => {
-        // Проверьте структуру ответа и обновите код соответственно
-        console.log(`RESULT ${response.results}`)
-        if (response && response.results) {
-          const newPhotos = response.results;
+        if (response && response.data.results) {
+          const newPhotos = response.data.results;
           if (newPhotos.length > 0) {
-            // Фильтрация уникальных фотографий по ID
             const uniquePhotos = newPhotos.filter(
               (newPhoto: { id: string }) => !this.photos.some((photo) => photo.id === newPhoto.id)
             );
@@ -58,7 +69,7 @@ class PhotoStore {
     } catch (err) {
       console.log(`ERROR : ${err}`);
       runInAction(() => {
-        this.error = 'Ошибка при загрузке изображений. Проверьте соединение с интернетом.';
+        this.error = 'Ошибка: Загрузить фотографии не удалось';
       });
     } finally {
       runInAction(() => {
@@ -82,6 +93,14 @@ class PhotoStore {
     this.photos = [];
     this.hasMore = true;
     await this.loadPhotos();
+  };
+
+
+  unsubscribeNetInfo = () => {
+    if (this.netInfoSubscription) {
+      this.netInfoSubscription();
+      this.netInfoSubscription = null;
+    }
   };
 }
 
