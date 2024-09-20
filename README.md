@@ -11,7 +11,7 @@ git clone https://github.com/KJONDIVE/SETest.git
 Перейдите в корневую папку проекта через терминал:
 
 ```bash
-cd путь.../SETest
+cd ./SETest
 ```
 
 ## Шаг 2: Установка зависимостей
