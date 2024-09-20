@@ -1,16 +1,16 @@
-import { StackNavigationProp } from '@react-navigation/stack';
+import { StackScreenProps } from '@react-navigation/stack';
 import React, { useRef, useCallback } from 'react';
-import { Animated, Dimensions } from 'react-native';
+import { Animated } from 'react-native';
 import { PinchGestureHandler, State } from 'react-native-gesture-handler';
 import { RootStackParamList } from '../App';
 
 interface IProps {
-    navigation: StackNavigationProp<RootStackParamList, 'Gallery'>;
-  }
+    route: StackScreenProps<RootStackParamList, 'PhotoView'>['route']
+}
 
-const PhotoView = ({ route }: { route: any }) => {
-    
-    const { photoUrl } = route.params
+const PhotoView = (props: IProps): JSX.Element => {
+
+    const { route } = props
 
     const scale = useRef(new Animated.Value(1)).current;
 
@@ -34,7 +34,7 @@ const PhotoView = ({ route }: { route: any }) => {
                 }).start();
             }
         },
-        [scale] 
+        [scale]
     );
 
     return (
@@ -43,7 +43,7 @@ const PhotoView = ({ route }: { route: any }) => {
             onHandlerStateChange={onPinchStateChange}
         >
             <Animated.Image
-                source={{ uri: photoUrl }}
+                source={{ uri: route.params.photoUrl }}
                 style={{
                     width: '100%',
                     height: '100%',
