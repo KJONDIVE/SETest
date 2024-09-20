@@ -18,5 +18,5 @@ export const fetchPhotos = async (page: number, query: string = 'yellow') => {
       query
     }
   });
-  return response.data;
+  return response
 };

@@ -1,10 +1,10 @@
 // *** NPM ***
 import React, { useEffect } from 'react';
-import { FlatList, TouchableOpacity, RefreshControl, View, Text, ActivityIndicator, Image, Button, Dimensions } from 'react-native';
+import { FlatList, TouchableOpacity, RefreshControl, View, Text, ActivityIndicator, Image, Button, Dimensions, StyleSheet } from 'react-native';
 import { observer } from 'mobx-react';
 
 // *** OTHER ***
-import photoStore from '../stores/store';  
+import photoStore from '../store';  
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../App';
 
@@ -23,10 +23,16 @@ const PhotoGallery = observer(({ navigation }: IProps) => {
     photoStore.loadPhotos();
   }, []);
 
+  useEffect(() => {
+    return () => {
+      photoStore.unsubscribeNetInfo();
+    };
+  }, []);
+
   const renderItem = ({ item }: any) => (
     <TouchableOpacity onPress={() => navigation.navigate('PhotoView', { photoUrl: item.urls.regular })}>
       <Image
-        style={{ width: windowWidth * 0.49, height: windowHeight * 0.33, margin: 2 }}
+        style={[styles.image, { width: windowWidth * 0.49, height: windowHeight * 0.33 }]}
         source={{ uri: item.urls.regular }} 
       />
     </TouchableOpacity>
@@ -36,7 +42,7 @@ const PhotoGallery = observer(({ navigation }: IProps) => {
     if (photoStore.loading && photoStore.page > 1) {
       return <ActivityIndicator size="large" color="#0000ff" />;
     } else if (!photoStore.hasMore) {
-      return <Text style={{ textAlign: 'center', padding: 10 }}>Больше фотографий нет</Text>;
+      return <Text style={styles.noMorePhotosText}>Больше фотографий нет</Text>;
     } else {
       return null;
     }
@@ -45,8 +51,8 @@ const PhotoGallery = observer(({ navigation }: IProps) => {
   return (
     <>
       {photoStore.error && (
-        <View style={{ padding: 10, alignItems: 'center' }}>
-          <Text style={{ color: 'red', textAlign: 'center', marginBottom: 10 }}>{photoStore.error}</Text>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{photoStore.error}</Text>
           <Button
             title="Повторить загрузку"
             onPress={() => {
@@ -77,7 +83,7 @@ const PhotoGallery = observer(({ navigation }: IProps) => {
             }}
           />
         }
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={styles.flatListContent}
         ListEmptyComponent={() =>
           !photoStore.loading && (
             <View>
@@ -88,6 +94,28 @@ const PhotoGallery = observer(({ navigation }: IProps) => {
       />
     </>
   );
+});
+
+const styles = StyleSheet.create({
+  image: {
+    margin: 2,
+  },
+  noMorePhotosText: {
+    textAlign: 'center',
+    padding: 10,
+  },
+  errorContainer: {
+    padding: 10,
+    alignItems: 'center',
+  },
+  errorText: {
+    color: 'red',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  flatListContent: {
+    paddingBottom: 100,
+  },
 });
 
 export default PhotoGallery;
